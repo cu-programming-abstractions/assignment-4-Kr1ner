@@ -2,11 +2,26 @@
 using namespace std;
 
 Optional<Set<int>> makeTarget(const Set<int>& elems, int target) {
-    /* TODO: Delete this comment and the next few lines, then implement this
-     * function.
-     */
-    (void) elems;
-    (void) target;
+    if(target == 0){
+        return Set<int>();
+    }
+    if(elems.isEmpty()){
+        return Nothing;
+    }
+    int currentVal = elems.first();
+    Set<int> result = elems;
+    result.remove(currentVal);
+
+    Optional<Set<int>> inCurrval = makeTarget(result,target - currentVal);
+    if(inCurrval!=Nothing){
+        inCurrval.value().add(currentVal);
+        return inCurrval;
+    }
+    Optional<Set<int>> exCurrval = makeTarget(result,target);
+    if(exCurrval!=Nothing){
+        return exCurrval;
+    }
+
     return Nothing;
 }
 
@@ -15,6 +30,9 @@ Optional<Set<int>> makeTarget(const Set<int>& elems, int target) {
 
 /* TODO: Add at least one custom test here, then delete this comment. */
 
+PROVIDED_TEST("Works for four-element set of numbers."){
+    EXPECT_EQUAL(makeTarget({1,2,3,4},5),{1,4});
+}
 
 
 
