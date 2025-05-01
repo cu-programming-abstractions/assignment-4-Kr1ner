@@ -3,11 +3,59 @@ using namespace std;
 
 Optional<Set<string>> placeEmergencySupplies(const Map<string, Set<string>>& roadNetwork,
                                              int numCities) {
-    /* TODO: Delete this comment and next few lines, then implement this function. */
-    (void) roadNetwork;
-    (void) numCities;
-    return Nothing;
+    if (numCities < 0) {
+        error("Number of cities to place supplies in cannot be negative.");
+    }
+
+    Set<string> allCities;
+    for (const string& city : roadNetwork.keys()) {
+        allCities += city;
+    }
+
+
+    std::function<Optional<Set<string>>(Set<string>, Set<string>, int)> helper;
+    helper = [&](Set<string> covered, Set<string> supplyLocations, int remainingCities) -> Optional<Set<string>> {
+        if (covered == allCities) {
+            return supplyLocations;
+        }
+
+        if (remainingCities == 0) return Nothing;
+
+        string city;
+        for (const string& c : allCities) {
+            if (!covered.contains(c)) {
+                city = c;
+                break;
+            }
+        }
+
+        Set<string> options = roadNetwork[city];
+        options += city;
+
+        for (const string& option : options) {
+            if (supplyLocations.contains(option)) continue;
+
+            Set<string> newSupply = supplyLocations;
+            newSupply += option;
+
+            Set<string> newCovered = covered;
+            newCovered += option;
+            for (const string& neighbor : roadNetwork[option]) {
+                newCovered += neighbor;
+            }
+
+            Optional<Set<string>> result = helper(newCovered, newSupply, remainingCities - 1);
+            if (result.hasValue()) {
+                return result;
+            }
+        }
+
+        return Nothing;
+    };
+
+    return helper({}, {}, numCities);
 }
+
 
 
 /* * * * * * * Test Helper Functions Below This Point * * * * * */

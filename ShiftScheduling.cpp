@@ -1,23 +1,99 @@
 #include "ShiftScheduling.h"
 using namespace std;
 
+int countSchedules(const Set<Shift>& shifts,
+                   Set<Shift>::iterator it,
+                   Set<Shift>& chosen,
+                   int hoursSoFar,
+                   int maxHours){
+    if (hoursSoFar > maxHours) return 0;
+    if (it == shifts.end()) return 1;
+
+    Shift current = *it;
+    ++it;
+
+    int total = countSchedules(shifts,it,chosen,hoursSoFar,maxHours);
+
+    bool hasOverlap = false;
+    for(const Shift& s :chosen){
+        if(overlapsWith(s,current)){
+            hasOverlap = true;
+            break;
+        }
+    }
+
+    int duration = lengthOf(current);
+    if (!hasOverlap && hoursSoFar + duration <= maxHours) {
+        chosen.add(current);
+        total += countSchedules(shifts, it, chosen, hoursSoFar + duration, maxHours);
+        chosen.remove(current);
+    }
+
+    return total;
+}
+
 int numSchedulesFor(const Set<Shift>& shifts, int maxHours) {
-    /* TODO: Delete this comment and the lines below it, then implement
-     * this function.
-     */
-    (void) shifts;
-    (void) maxHours;
-    return -1;
+    if(maxHours<0) error("Max hours cannot be negative!");
+
+    Set<Shift> chosen;
+    return countSchedules(shifts, shifts.begin(), chosen, 0, maxHours);
+
+
+
+}
+
+Set<Shift> bestScheduleHelper(Set<Shift>::iterator it,
+                              Set<Shift>::iterator end,
+                              Set<Shift>& chosen,
+                              int hoursSoFar,
+                              int maxHours) {
+    if (hoursSoFar > maxHours) return {};
+    if (it == end) return chosen;
+
+    Shift current = *it;
+    ++it;
+
+    Set<Shift> exclude = bestScheduleHelper(it, end, chosen, hoursSoFar, maxHours);
+
+    Set<Shift> include;
+    bool hasOverlap = false;
+    for (const Shift& s : chosen) {
+        if (overlapsWith(s, current)) {
+            hasOverlap = true;
+            break;
+        }
+    }
+
+    int duration = lengthOf(current);
+    if (!hasOverlap && hoursSoFar + duration <= maxHours) {
+        chosen.add(current);
+        include = bestScheduleHelper(it, end, chosen, hoursSoFar + duration, maxHours);
+        chosen.remove(current);
+    }
+
+    int profitWith = 0;
+    int profitWithout = 0;
+    for (const Shift& s : include) profitWith += profitFor(s);
+    for (const Shift& s : exclude) profitWithout += profitFor(s);
+
+    return (profitWith > profitWithout) ? include : exclude;
 }
 
 Set<Shift> maxProfitSchedule(const Set<Shift>& shifts, int maxHours) {
-    /* TODO: Delete this comment and the lines below it, then implement
-     * this function.
-     */
-    (void) shifts;
-    (void) maxHours;
-    return {};
+    if (maxHours < 0) error("Max hours cannot be negative!");
+    Set<Shift> chosen;
+    return bestScheduleHelper(shifts.begin(), shifts.end(), chosen, 0, maxHours);
 }
+
+
+int totalProfit(const Set<Shift>& shifts) {
+    int total = 0;
+    for (const Shift& s : shifts) {
+        total += profitFor(s);
+    }
+    return total;
+}
+
 
 
 
@@ -45,6 +121,8 @@ Set<Shift> maxProfitSchedule(const Set<Shift>& shifts, int maxHours) {
 /* * * * * * Test cases from the starter files below this point. * * * * * */
 #include "vector.h"
 #include "error.h"
+
+
 
 PROVIDED_TEST("numSchedulesFor reports errors with illegal numbers of hours.") {
     EXPECT_ERROR(numSchedulesFor({}, -137));
